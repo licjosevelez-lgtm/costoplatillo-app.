@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CostoPlatillo - Gestor de Recetas</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+<script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://esm.sh/@google/genai@^1.12.0"
+  }
+}
+</script>
+  <script type="module" crossorigin src="/assets/index-BEVWZ2FD.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-Brs9E5fw.css">
+</head>
+<body>
+    <header>
+        <h1>
+            <img src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='%23e74c3c'%3E%3Cpath d='M152,40V24a8,8,0,0,0-8-8H112a8,8,0,0,0-8,8V40a64.07,64.07,0,0,0-56,64v88a8,8,0,0,0,8,8H200a8,8,0,0,0,8-8V104A64.07,64.07,0,0,0,152,40ZM128,48h16V60.67a64,64,0,0,0-16,0ZM192,192H64V104a48.05,48.05,0,0,1,48-48h16a48.05,48.05,0,0,1,48,48Z'/%3E%3C/svg%3E" alt="Logo CostoPlatillo" class="header-logo">
+            CostoPlatillo
+        </h1>
+        <nav>
+            <button id="nav-dashboard">Inicio</button>
+            <button id="nav-production">Producción</button>
+            <button id="nav-compras">Compras</button>
+            <button id="nav-banquetes">Banquetes</button>
+            <button id="nav-contrato">Contrato</button>
+            <button id="nav-report">Reporte</button>
+            <button id="nav-config">Configuración</button>
+        </nav>
+    </header>
+
+    <main>
+        <!-- VISTA: DASHBOARD -->
+        <section id="dashboard-view" class="view">
+            <div class="view-header">
+                <h2 data-title="Platillos Guardados">Platillos Guardados</h2>
+                <button id="add-new-dish-btn" class="primary-btn">🍳 Agregar Nuevo Platillo</button>
+            </div>
+            <div id="dishes-grid" class="dishes-grid">
+                <!-- Las tarjetas de platillos y el mensaje se insertarán aquí dinámicamente -->
+            </div>
+        </section>
+
+        <!-- VISTA: FORMULARIO DE RECETA (CREAR/EDITAR) -->
+        <section id="recipe-view" class="view" style="display: none;">
+            <form id="recipe-form" novalidate>
+                 <h2 id="recipe-form-title">Crear Nuevo Platillo</h2>
+                <input type="hidden" id="dish-id">
+                
+                <div class="form-group">
+                    <label for="dish-name">Nombre del Platillo</label>
+                    <input type="text" id="dish-name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="dish-image">Imagen del Platillo</label>
+                    <input type="file" id="dish-image" accept="image/*">
+                    <img id="image-preview" src="#" alt="Vista previa de la imagen" style="display: none;"/>
+                </div>
+
+                <fieldset>
+                    <legend>
+                        Ingredientes
+                    </legend>
+                    <div id="ingredients-list">
+                        <!-- Los ingredientes agregados se mostrarán aquí -->
+                    </div>
+                     <div class="ingredient-inputs">
+                        <div class="ingredient-selectors">
+                            <select id="ingredient-category"><option value="">-- Categoría --</option></select>
+                            <select id="ingredient-item" disabled><option value="">-- Ingrediente --</option></select>
+                            <select id="ingredient-detail" style="display: none;"><option value="">-- Detalle --</option></select>
+                        </div>
+                        <input type="number" id="ingredient-qty" placeholder="Cantidad" step="0.1">
+                        <select id="ingredient-unit">
+                            <option value="kg">kg</option>
+                            <option value="g">g</option>
+                            <option value="litro">litro</option>
+                            <option value="ml">ml</option>
+                            <option value="pieza">pieza</option>
+                             <option value="paquete">paquete</option>
+                        </select>
+                        <div class="price-finder">
+                             <input type="number" id="ingredient-price" placeholder="Precio / unidad" step="0.01">
+                             <button type="button" id="search-price-btn" class="search-price-btn">
+                                <span class="search-text">Buscar</span>
+                                <div class="loader" style="display: none;"></div>
+                            </button>
+                        </div>
+                        <button type="button" id="add-ingredient-btn" class="secondary-btn">+ Añadir</button>
+                    </div>
+                </fieldset>
+                
+                <div class="form-group">
+                    <label for="dish-yield">¿Cuántos platillos rinde esta receta?</label>
+                    <input type="number" id="dish-yield" placeholder="Ej: 4 porciones" step="1" min="1" required>
+                </div>
+
+                <div class="summary-section">
+                    <h3>Costo de Materia Prima (Lote): <span id="total-ingredients-cost">$0.00</span></h3>
+                    <h4 id="unit-cost-display">Costo Unitario por Platillo: $0.00</h4>
+                </div>
+
+                <div class="form-group">
+                    <label for="profit-margin">Margen de Ganancia Deseado (%)</label>
+                    <input type="number" id="profit-margin" value="30" step="1" min="0">
+                </div>
+                
+                <div class="form-actions">
+                    <div class="form-actions-left">
+                        <button type="button" id="delete-recipe-btn" class="danger-btn" style="display: none;">Eliminar Platillo</button>
+                        <button type="button" id="duplicate-recipe-btn" class="secondary-btn" style="display: none;">Duplicar</button>
+                    </div>
+                    <div class="form-actions-right">
+                        <button type="button" id="cancel-recipe-btn">Cancelar</button>
+                        <button type="submit" id="save-recipe-btn" class="primary-btn">Guardar Platillo</button>
+                    </div>
+                </div>
+            </form>
+        </section>
+
+        <!-- VISTA: PRODUCCIÓN -->
+        <section id="production-view" class="view" style="display: none;">
+             <div class="view-header">
+                <h2 data-title="Plan de Producción Mensual">Plan de Producción Mensual</h2>
+            </div>
+            <div id="production-time-selector-container">
+                <!-- Time selectors will be injected here -->
+            </div>
+            <div id="production-dishes-list">
+                 <!-- Lista de platillos para planificar se insertará aquí -->
+            </div>
+        </section>
+        
+        <!-- VISTA: LISTA DE COMPRAS -->
+        <section id="shopping-list-view" class="view" style="display: none;">
+             <div class="view-header">
+                <h2 data-title="Lista de Compras Semanal">Lista de Compras Semanal</h2>
+            </div>
+            <div id="shopping-time-selector-container">
+                <!-- Time selectors will be injected here -->
+            </div>
+            <div id="shopping-list-container">
+                 <!-- Lista de compras se insertará aquí -->
+            </div>
+        </section>
+
+        <!-- VISTA: BANQUETES -->
+        <section id="banquetes-view" class="view" style="display: none;">
+            <div class="view-header">
+                <h2 data-title="Cotizador de Banquetes">Cotizador de Banquetes</h2>
+            </div>
+            <div class="banquet-form-container">
+                <fieldset>
+                    <legend>Platillos del Evento</legend>
+                    <div id="banquet-selected-dishes-list">
+                        <!-- Platillos seleccionados para el banquete -->
+                    </div>
+                    <div class="banquet-add-dish-controls">
+                        <select id="banquet-dish-selector"><option>-- Selecciona un platillo --</option></select>
+                        <input type="number" id="banquet-dish-qty" placeholder="Cantidad" min="1" value="10">
+                        <button type="button" id="banquet-add-dish-btn" class="secondary-btn">+ Agregar Platillo</button>
+                    </div>
+                </fieldset>
+        
+                <fieldset>
+                    <legend>Costos Adicionales del Evento</legend>
+                     <div class="additional-costs-grid">
+                        <div class="form-group">
+                            <label for="banquet-cost-meseros">Costo de Meseros</label>
+                            <input type="number" id="banquet-cost-meseros" value="0" step="100" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="banquet-cost-loza">Costo de Loza y Cristalería</label>
+                            <input type="number" id="banquet-cost-loza" value="0" step="50" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="banquet-cost-manteleria">Costo de Mantelería</label>
+                            <input type="number" id="banquet-cost-manteleria" value="0" step="50" min="0">
+                        </div>
+                    </div>
+                </fieldset>
+        
+                <div class="summary-section" id="banquet-summary">
+                    <h4>Costo Alimentos: <span id="banquet-summary-food">$0.00</span></h4>
+                    <h4>Costos Adicionales: <span id="banquet-summary-extras">$0.00</span></h4>
+                    <h3 class="total-cost">Costo Total del Evento: <span id="banquet-summary-total-cost">$0.00</span></h3>
+                    <hr class="summary-divider">
+                    <div class="form-group profit-group">
+                        <label for="banquet-profit-margin">Margen de Ganancia Deseado (%)</label>
+                        <input type="number" id="banquet-profit-margin" value="50" step="1" min="0">
+                    </div>
+                    <h2 class="quote-price">Precio Sugerido (Cotización): <span id="banquet-summary-quote-price">$0.00</span></h2>
+                </div>
+                
+                <div class="form-actions">
+                     <div class="form-actions-right">
+                        <button id="generate-quote-btn" class="primary-btn">Generar Cotización en PDF</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- VISTA: CONTRATO -->
+        <section id="contract-view" class="view" style="display: none;">
+            <div class="view-header">
+                <h2 data-title="Generador de Contratos de Banquete">Generador de Contratos de Banquete</h2>
+            </div>
+            <form id="contract-form" class="banquet-form-container">
+                <fieldset>
+                    <legend>Información del Cliente y Evento</legend>
+                    <div class="form-group">
+                        <label for="contract-client-name">Nombre del Cliente</label>
+                        <input type="text" id="contract-client-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="contract-event-name">Nombre del Evento</label>
+                        <input type="text" id="contract-event-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="contract-event-date">Fecha del Evento</label>
+                        <input type="date" id="contract-event-date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="contract-guest-count">Número de Personas</label>
+                        <input type="number" id="contract-guest-count" min="1" required>
+                    </div>
+                </fieldset>
+        
+                <fieldset>
+                    <legend>Selección de Menú</legend>
+                    <p class="text-muted" style="margin-bottom: 1rem;">Completa las opciones de platillos para el contrato.</p>
+                    
+                    <div class="form-group">
+                        <label>Platos Fuertes (opciones para el cliente)</label>
+                        <select class="contract-menu-select" id="contract-main-1"></select>
+                        <select class="contract-menu-select" id="contract-main-2"></select>
+                        <select class="contract-menu-select" id="contract-main-3"></select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Pastas o Sopas (opciones para el cliente)</label>
+                        <select class="contract-menu-select" id="contract-pasta-1"></select>
+                        <select class="contract-menu-select" id="contract-pasta-2"></select>
+                        <select class="contract-menu-select" id="contract-pasta-3"></select>
+                    </div>
+        
+                    <div class="form-group">
+                        <label>Guarniciones (opciones para el cliente)</label>
+                        <select class="contract-menu-select" id="contract-side-1"></select>
+                        <select class="contract-menu-select" id="contract-side-2"></select>
+                    </div>
+        
+                    <div class="form-group">
+                        <label>Entrada (opciones para el cliente)</label>
+                        <select class="contract-menu-select" id="contract-entree-1"></select>
+                        <select class="contract-menu-select" id="contract-entree-2"></select>
+                    </div>
+                </fieldset>
+        
+                <fieldset>
+                    <legend>Detalles del Servicio Incluido</legend>
+                    <div class="form-group">
+                        <label class="checkbox-label"><input type="checkbox" id="contract-include-crockery"> Incluir Loza completa (vajilla, cubiertos, cristalería)</label>
+                    </div>
+                    <div class="form-group">
+                        <label for="contract-waiters-qty">Cantidad de Meseros</label>
+                        <input type="number" id="contract-waiters-qty" min="0" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label"><input type="checkbox" id="contract-include-supervisor"> Incluir 1 Supervisor</label>
+                    </div>
+                </fieldset>
+                
+                <fieldset>
+                    <legend>Plan de Pagos</legend>
+                    <div class="form-group">
+                        <label for="contract-total-amount">Monto Total del Contrato (MXN)</label>
+                        <input type="number" id="contract-total-amount" min="0" step="0.01" required>
+                    </div>
+                     <div class="payment-summary">
+                        <p><strong>Anticipo (20%):</strong> <span id="contract-payment-1">$0.00</span></p>
+                        <p><strong>Segundo pago (50%):</strong> <span id="contract-payment-2">$0.00</span></p>
+                        <p><strong>Saldo final (30%):</strong> <span id="contract-payment-3">$0.00</span></p>
+                    </div>
+                </fieldset>
+        
+                <div class="form-actions">
+                    <div class="form-actions-right">
+                        <button type="button" id="generate-contract-pdf-btn" class="primary-btn">Generar Contrato en PDF</button>
+                    </div>
+                </div>
+            </form>
+        </section>
+
+        <!-- VISTA: REPORTE -->
+        <section id="report-view" class="view" style="display: none;">
+            <div class="view-header">
+                <h2 data-title="Reporte Mensual y Punto de Equilibrio">Reporte Mensual y Punto de Equilibrio</h2>
+            </div>
+             <div id="report-time-selector-container">
+                <!-- Time selectors will be injected here -->
+            </div>
+            <div class="report-summary" id="report-summary">
+                 <!-- Tarjetas de resumen de costos se insertarán aquí -->
+            </div>
+            <div class="breakeven-results" id="breakeven-results">
+                <h3>Punto de Equilibrio</h3>
+                <p>La cantidad de platillos que necesitas vender para cubrir todos tus costos.</p>
+                <div id="breakeven-table-container">
+                    <!-- Tabla de punto de equilibrio se insertará aquí -->
+                </div>
+            </div>
+        </section>
+
+        <!-- VISTA: CONFIGURACIÓN -->
+        <section id="config-view" class="view" style="display: none;">
+            <div class="view-header">
+                <h2 data-title="Configuración">Configuración</h2>
+            </div>
+            <form id="config-form">
+                <p>Establece tus costos fijos mensuales. Estos costos se usan para calcular tu punto de equilibrio en el reporte mensual.</p>
+                <fieldset>
+                    <legend>Costos Fijos Mensuales</legend>
+                    <div class="form-group">
+                        <label for="fixed-cost-alquiler">Alquiler</label>
+                        <input type="number" id="fixed-cost-alquiler" class="fixed-cost-input" data-name="alquiler" step="0.01" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="fixed-cost-sueldos">Sueldos</label>
+                        <input type="number" id="fixed-cost-sueldos" class="fixed-cost-input" data-name="sueldos" step="0.01" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="fixed-cost-luz">Luz</label>
+                        <input type="number" id="fixed-cost-luz" class="fixed-cost-input" data-name="luz" step="0.01" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="fixed-cost-agua">Agua</label>
+                        <input type="number" id="fixed-cost-agua" class="fixed-cost-input" data-name="agua" step="0.01" value="0">
+                    </div>
+                     <div class="form-group">
+                        <label for="fixed-cost-gas">Gas</label>
+                        <input type="number" id="fixed-cost-gas" class="fixed-cost-input" data-name="gas" step="0.01" value="0">
+                    </div>
+                </fieldset>
+                <div class="form-actions">
+                    <div class="form-actions-right">
+                        <button type="submit" class="primary-btn">Guardar Configuración</button>
+                    </div>
+                </div>
+            </form>
+        </section>
+    </main>
+
+    <!-- This container will be used to render the PDF content temporarily -->
+    <div id="pdf-render-container"></div>
+
+    <!-- MODAL: AGREGAR INGREDIENTE PERSONALIZADO -->
+    <div id="custom-ingredient-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h3>Agregar Ingrediente Personalizado</h3>
+            <form id="custom-ingredient-form">
+                <div class="form-group">
+                    <label for="custom-ingredient-name">Nombre del Ingrediente</label>
+                    <input type="text" id="custom-ingredient-name" required>
+                </div>
+                 <div class="form-group">
+                    <label for="custom-ingredient-category-select">Categoría</label>
+                    <select id="custom-ingredient-category-select"></select>
+                </div>
+                <div class="form-group" id="new-category-group" style="display: none;">
+                    <label for="custom-ingredient-new-category">Nombre de la Nueva Categoría</label>
+                    <input type="text" id="custom-ingredient-new-category">
+                </div>
+                <div class="form-group">
+                    <label for="custom-ingredient-unit">Unidad de Medida Principal</label>
+                     <select id="custom-ingredient-unit">
+                        <option value="kg">kg</option>
+                        <option value="g">g</option>
+                        <option value="litro">litro</option>
+                        <option value="ml">ml</option>
+                        <option value="pieza">pieza</option>
+                        <option value="paquete">paquete</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                     <button type="button" id="cancel-custom-ingredient-btn">Cancelar</button>
+                     <button type="submit" class="primary-btn">Guardar Ingrediente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- NOTIFICATION CONTAINER -->
+    <div id="notification-container"></div>
+</body>
+</html>
