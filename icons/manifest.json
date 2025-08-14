@@ -1,18 +1,24 @@
-
 {
   "name": "CostoPlatillo",
-  "short_name": "CostoPlatillo",
-  "start_url": "index.html",
+  "short_name": "CostoApp",
+  "description": "Calcula los costos de tus platillos y gestiona tu negocio.",
+  "id": "com.costoplatillo.app",
+  "start_url": "/",
   "display": "standalone",
-  "background_color": "#fff9f0",
+  "background_color": "#ffffff",
   "theme_color": "#e74c3c",
-  "description": "Una aplicación para calcular los costos de platillos de comida, planificar producción y generar cotizaciones.",
   "icons": [
     {
-      "src": "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='%23e74c3c'%3E%3Cpath d='M152,40V24a8,8,0,0,0-8-8H112a8,8,0,0,0-8,8V40a64.07,64.07,0,0,0-56,64v88a8,8,0,0,0,8,8H200a8,8,0,0,0,8-8V104A64.07,64.07,0,0,0,152,40ZM128,48h16V60.67a64,64,0,0,0-16,0ZM192,192H64V104a48.05,48.05,0,0,1,48-48h16a48.05,48.05,0,0,1,48,48Z'/%3E%3C/svg%3E",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
